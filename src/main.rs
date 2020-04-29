@@ -1,13 +1,9 @@
-//extern crate abomonation;
-extern crate differential_dataflow;
-extern crate timely;
-
-use crate::differential_dataflow::input::Input;
-use crate::differential_dataflow::operators::arrange::{ArrangeByKey, ArrangeBySelf};
-use crate::differential_dataflow::operators::JoinCore;
 use abomonation::abomonated::Abomonated;
 use abomonation::encode;
-//use differential_dataflow::trace::implementations::ord::OrdValSpineAbom as DefaultValTrace;
+use differential_dataflow::input::Input;
+use differential_dataflow::operators::arrange::{Arrange, ArrangeByKey, ArrangeBySelf};
+use differential_dataflow::operators::JoinCore;
+use differential_dataflow::trace::implementations::ord::OrdKeySpineAbom;
 use timely::dataflow::channels::pact::Pipeline;
 use timely::dataflow::operators::generic::operator::Operator;
 
@@ -32,8 +28,8 @@ fn main() {
             let (handle, manages) = scope.new_collection();
             manages.inspect(|x| println!("manages: {:?}", x));
             let reverse = manages.map(|(manager, employee)| (employee, manager));
-            let manages = manages.arrange_by_key();
-            let reverse = reverse.arrange_by_key();
+            let manages = manages.arrange::<OrdKeySpineAbom<_, _, _>>();
+            let reverse = reverse.arrange::<OrdKeySpineAbom<_, _, _>>();
 
             //let reverse = reverse.arrange_by_key();
 
@@ -48,13 +44,8 @@ fn main() {
                 .sink(Pipeline, "StdOutBatchPrinter", |input| {
                     while let Some((time, data)) = input.next() {
                         for d in data.iter() {
-                            //let local = (**d).clone();
-                            let mut bytes = Vec::new();
-                            unsafe {
-                                encode(&(**d), &mut bytes);
-                            }
-                            println!("{:?}", d);
-                            println!("{:?}", bytes);
+                            println!("{:?}", ***d);
+                            println!("{:?}", d.as_bytes());
                         }
                     }
                 });
